@@ -1,28 +1,29 @@
 #include "../tree_include/tree.h"
 
-
 const char* FILE_PATH = "file.tre";
 
 int main()
 {
     FILE* file = fopen(FILE_PATH, "w");
-    Tree tree;
-    treeCtor(&tree);
+    if (file == NULL)
+    {
+	    fprintf(stderr, "unable to open %s\n", FILE_PATH);
+	    return -1;
+    }
+    Tree tree = {};
+    treeCtor(&tree, file);
     tree.rootBranch->data = 10;
-    treeInsertRight(&tree, tree.rootBranch, 15);
-    treeInsertRight(&tree, tree.rootBranch->rightBranch, 20);
-    treeInsertLeft (&tree, tree.rootBranch->rightBranch, 12);
-    treeInsertLeft (&tree, tree.rootBranch, 5);
-    treePrintPostorder(tree.rootBranch, file);
-    fputc('\n', file);
+    tree.rootBranch-> leftBranch = treeCreateNode(&tree, NULL, NULL, NULL, 0);
+    tree.rootBranch->rightBranch = treeCreateNode(&tree, NULL, NULL, NULL, 0); 
+    tree.rootBranch->leftBranch->rightBranch = treeCreateNode(&tree, NULL, NULL, NULL, 0);
+    tree.rootBranch->leftBranch-> leftBranch = treeCreateNode(&tree, NULL, NULL, NULL, 0);
+    tree.rootBranch->leftBranch-> leftBranch->leftBranch = treeCreateNode(&tree, NULL, NULL, NULL, 0); 
+
     treePrintPreorder(tree.rootBranch, file);
     fputc('\n', file);
-    treePrintInorder(tree.rootBranch, file); 
-    fputc('\n', file);
+
     fclose(file);
 
-    file = fopen(FILE_PATH, "r");
-    treeLoad(file, 0);
-    fclose(file);
+    treeVerify(&tree);
     return 0;
 }

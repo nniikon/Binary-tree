@@ -15,7 +15,6 @@ static TreeError getFileSize(FILE* file, size_t* size)
 static TreeError putFileToBuffer(char** buffer, const size_t size, FILE* file)
 {
     // Size is in BYTES (not the amount of 'char's).
-    TreeError err = TREE_ERROR_NO;
     char* tempBuf = (char*) calloc(size + 1, 1);
     if (tempBuf == NULL)
     {

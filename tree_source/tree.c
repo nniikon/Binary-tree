@@ -7,8 +7,18 @@
 #define TREE_DUMP_RETURN_ERROR(err)                                           \
     do                                                                        \
     {                                                                         \
-        fprintf(stderr, "%s\n", treeGetErrorMsg(err));                        \
+        if (tree->debugInfo.isDebug)                                          \
+            fprintf(tree->debugInfo.file, "%s\n", treeGetErrorMsg(err));      \
         return err;                                                           \
+    } while (0)
+
+
+#define TREE_VERIFY_OR_ELSE(tree)                                             \
+    do                                                                        \
+    {                                                                         \
+        TreeError err = treeVerify(tree);                                     \
+        if (err != TREE_ERROR_NO)                                             \
+            TREE_DUMP_RETURN_ERROR(err);                                      \
     } while (0)
 
 
@@ -19,17 +29,23 @@ typedef enum TreePrintOrder
     TREE_ORDER_POSTORDER,
 } TreePrintOrder;
 
+
 typedef enum TreeDirection
 {
     TREE_DIR_RIGHT,
     TREE_DIR_LEFT,
 } TreeDirection;
 
+
 static TreeNode* treeCalloc(Tree* tree);
 
 static TreeError treeInsert(Tree* tree, TreeNode* node, TreeDirection dir, treeElem_t data);
 
 static void treePrint(TreeNode* node, FILE* file, TreePrintOrder order);
+
+static unsigned int treeCalcSize(Tree* tree);
+
+static unsigned int treeCalcSize_recursive(TreeNode* node);
 
 
 const char* treeGetErrorMsg(TreeError err)
@@ -50,7 +66,7 @@ const char* treeGetErrorMsg(TreeError err)
 
 static TreeNode* treeCalloc(Tree* tree)
 {
-    TREE_DUMP_FUNC_START;
+    TREE_DUMP_FUNC_START(tree->debugInfo.file);
 
     if (tree == NULL) 
         return NULL;
@@ -77,40 +93,96 @@ static TreeNode* treeCalloc(Tree* tree)
         tree->capacity = newCapacity;
     }
 
-    TREE_DUMP_FUNC_SUCCESS;
+    TREE_DUMP_FUNC_SUCCESS(tree->debugInfo.file);
     return tree->memBuffer + tree->freeIndex++;
 }
 
 
-TreeError treeCtor(Tree* tree)
+TreeError treeCtor(Tree* tree, FILE* file)
 {
-    TREE_DUMP_FUNC_START;
-    memset(tree, 0, sizeof(Tree));
+	if (tree == NULL)
+		return TREE_ERROR_NULLPTR_PASSED;
+	memset(tree, 0, sizeof(Tree));
+
+	if (file != NULL)
+	{
+		tree->debugInfo.isDebug = 1;
+		tree->debugInfo.file = file;
+		tree->debugInfo.dumpIndex = 0;
+	}
+	else
+	{
+		tree->debugInfo.isDebug = 0;
+		tree->debugInfo.file = NULL;
+		tree->debugInfo.dumpIndex = (unsigned int) -1;
+	}
 
     tree->rootBranch = treeCalloc(tree);
     if (tree->rootBranch == NULL)
     {
         TREE_DUMP_RETURN_ERROR(TREE_ERROR_BAD_MEM_ALLOC);
     }
-    TREE_DUMP_FUNC_SUCCESS;
+    tree->size++;
+
+
+
+    TREE_DUMP_FUNC_SUCCESS(tree->debugInfo.file);
     return TREE_ERROR_NO;
 }
 
 
 TreeError treeDtor(Tree* tree)
 {
-    TREE_DUMP_FUNC_START;
+    TREE_DUMP_FUNC_START(tree->debugInfo.file);
 
     free(tree->memBuffer);
     memset(tree, 0, sizeof(Tree));
 
-    TREE_DUMP_FUNC_SUCCESS;
+    TREE_DUMP_FUNC_SUCCESS(tree->debugInfo.file);
     return TREE_ERROR_NO;
+}
+
+
+TreeError treeVerify(Tree* tree)
+{
+    if (tree == NULL)
+        TREE_DUMP_RETURN_ERROR(TREE_ERROR_NULLPTR_PASSED);
+
+    if (tree->rootBranch == NULL || tree->memBuffer == NULL)
+        TREE_DUMP_RETURN_ERROR(TREE_ERROR_NO_CTOR);
+
+    if (tree->size > tree->capacity)
+        TREE_DUMP_RETURN_ERROR(TREE_ERROR_SIZE_CAPACITY);
+
+    if (tree->size != treeCalcSize(tree))
+        TREE_DUMP_RETURN_ERROR(TREE_ERROR_UNEXPECTED_SIZE);
+
+    return TREE_ERROR_NO;
+}
+
+
+static unsigned int treeCalcSize_recursive(TreeNode* node)
+{
+    unsigned int addSize = 1;
+
+    if (node->rightBranch != NULL)
+        addSize += treeCalcSize_recursive(node->rightBranch);
+    if (node-> leftBranch != NULL)
+        addSize += treeCalcSize_recursive(node-> leftBranch);
+
+    return addSize;
+}
+
+
+static unsigned int treeCalcSize(Tree* tree)
+{
+    return treeCalcSize_recursive(tree->rootBranch);
 }
 
 
 static TreeError treeInsert(Tree* tree, TreeNode* node, TreeDirection dir, treeElem_t data)
 {
+    TREE_VERIFY_OR_ELSE(tree);
     if (node == NULL)
         TREE_DUMP_RETURN_ERROR(TREE_ERROR_NULLPTR_PASSED);
 
@@ -118,6 +190,7 @@ static TreeError treeInsert(Tree* tree, TreeNode* node, TreeDirection dir, treeE
     if (newNode == NULL)
         TREE_DUMP_RETURN_ERROR(TREE_ERROR_BAD_MEM_ALLOC);
     newNode->data = data;
+    tree->size++;
 
     switch(dir)
     {
@@ -146,7 +219,7 @@ TreeError treeInsertLeft(Tree* tree, TreeNode* node, treeElem_t data)
     return treeInsert(tree, node, TREE_DIR_LEFT , data);
 }
 
-// add typedef enum
+
 static void treePrint(TreeNode* node, FILE* file, TreePrintOrder order)
 {
     if (node == NULL)
@@ -191,26 +264,44 @@ void treePrintInorder(TreeNode* node, FILE* file)
 }
 
 
-Tree* treeLoad(FILE* file, int direction)
-{
-    TREE_DUMP_FUNC_START;
+// Tree* treeLoad(FILE* file, int direction)
+// {
+//     TREE_DUMP_FUNC_START;
 
-    Tree tree = {};
-    treeCtor(&tree);
+//     Tree tree = {};
+//     treeCtor(&tree);
 
-    size_t size;
-    char* buffer = NULL;
-    createCharBuffer(&buffer, &size, file);
+//     size_t size;
+//     char* buffer = NULL;
+//     createCharBuffer(&buffer, &size, file);
 
-    free(buffer);
-    TREE_DUMP_FUNC_SUCCESS;
-}
+//     free(buffer);
+//     TREE_DUMP_FUNC_SUCCESS;
+//     return TREE_ERROR_NO;
+// }
 
 
-static TreeNode* treeLoad_recursive(char* buffer, int direction)
-{
-    
-}
+// static TreeNode* treeLoadPreorder(Tree* tree, char* buffer)
+// {
+//     const char* delims = ")\n";
+//     TreeNode* node = treeCalloc(tree);
+//     if (node == NULL)
+//         return node;
+
+//     while (strchr(delims, buffer) == NULL)
+//     {
+//         if (buffer[0] == '(')
+//         {
+//             buffer += 2;
+//             node->leftBranch = treeLoadPreorder(tree, buffer);
+//         }
+//         else if (isdigit(buffer[0]))
+//         {
+//             node->data = atof
+//         }
+
+//     }
+// }
 
 
 TreeNode* treeCreateNode(Tree* tree, TreeNode* left, TreeNode* right, TreeNode* parent, treeElem_t data)
@@ -219,10 +310,20 @@ TreeNode* treeCreateNode(Tree* tree, TreeNode* left, TreeNode* right, TreeNode* 
     if (node == NULL)
         return NULL;
 
+    tree->size++;
+
     node->data         = data;
     node->leftBranch   = left;
     node->rightBranch  = right;
     node->parentBranch = parent;
 
+    return node;
+}
+
+TreeNode* treeCreateEmptyNode(Tree* tree)
+{
+    TreeNode* node = treeCalloc(tree);
+    if (node != NULL)
+        tree->size++;
     return node;
 }

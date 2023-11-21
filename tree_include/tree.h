@@ -16,11 +16,19 @@ typedef struct TreeNode
 
 typedef struct
 {
+	int isDebug;
+	FILE* file;
+	unsigned int dumpIndex;
+} TreeDebugInfo;	
+
+typedef struct
+{
     TreeNode* rootBranch;
     unsigned int size;
     unsigned int capacity;
     unsigned int freeIndex;
     TreeNode*    memBuffer;
+	TreeDebugInfo debugInfo;
 } Tree;
 
 typedef enum
@@ -30,7 +38,7 @@ typedef enum
     #undef DEF_TREE_ERR
 } TreeError;
 
-TreeError treeCtor(Tree* tree);
+TreeError treeCtor(Tree* tree, FILE* file);
 
 TreeError treeDtor(Tree* tree);
 
@@ -41,12 +49,12 @@ void treePrintPostorder(TreeNode* node, FILE* file);
 void treePrintPreorder (TreeNode* node, FILE* file);
 void treePrintInorder  (TreeNode* node, FILE* file);
 
+TreeError treeVerify(Tree* tree);
+
 const char* treeGetErrorMsg(TreeError err);
 
 TreeNode* treeCreateNode(Tree* tree, TreeNode* left, TreeNode* right,
                                      TreeNode* parent, treeElem_t data);
-
-Tree* treeLoad(FILE* file, int direction);
-
+TreeNode* treeCreateEmptyNode(Tree* tree);
 
 #endif // TREE_H_
