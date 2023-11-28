@@ -27,7 +27,6 @@ OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
 
 all: $(BUILD_DIR) $(EXECUTABLE)
 
-
 $(EXECUTABLE): $(OBJS)
 	@gcc $^ $(CFLAGS) -o $(BUILD_DIR)/$@
 
@@ -36,7 +35,6 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
-
 
 clean:
 	rm -rf $(BUILD_DIR)
