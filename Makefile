@@ -18,8 +18,8 @@ float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,$\
 object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,$\
 undefined,unreachable,vla-bound,vptr
 
-SRC_DIR = tree_source
-BUILD_DIR = tree_build
+SRC_DIR = source
+BUILD_DIR = build
 EXECUTABLE = tree
 
 SRCS = $(wildcard $(SRC_DIR)/*.c)
